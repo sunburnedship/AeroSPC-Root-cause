@@ -1,0 +1,1163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AeroSPC — Statistical Quality Control Simulator</title>
+<style>
+  :root{
+    --bg:#0b1220; --panel:#121c2e; --panel2:#16233a; --ink:#e8eef7; --muted:#9fb0c8;
+    --line:#26374f; --accent:#46b3ff; --good:#37d39b; --warn:#ffcc54; --bad:#ff6b6b;
+    --grid:#1d2c45; --chip:#1c2a42;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-text-size-adjust:100%}
+  .wrap{max-width:1100px;margin:0 auto;padding:16px}
+  header{display:flex;align-items:center;gap:12px;flex-wrap:wrap;border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:14px}
+  .logo{font-weight:800;letter-spacing:.5px;font-size:20px}
+  .logo span{color:var(--accent)}
+  .tag{color:var(--muted);font-size:13px}
+  .pill{margin-left:auto;background:var(--chip);border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-size:13px;color:var(--muted)}
+  h2{font-size:18px;margin:18px 0 8px}
+  h3{font-size:15px;margin:14px 0 6px;color:var(--accent)}
+  p{line-height:1.5;color:var(--ink)}
+  .muted{color:var(--muted)}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px}
+  .grid{display:grid;gap:14px}
+  @media(min-width:760px){.cols-2{grid-template-columns:1fr 1fr}.cols-3{grid-template-columns:1fr 1fr 1fr}}
+  button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid var(--line);
+    background:var(--panel2);color:var(--ink);padding:10px 14px;transition:.15s}
+  button:hover{border-color:var(--accent)}
+  button:disabled{opacity:.4;cursor:not-allowed}
+  .btn-primary{background:linear-gradient(180deg,#2f8fe0,#1f6fc0);border-color:#2f8fe0;font-weight:700}
+  .btn-primary:hover{filter:brightness(1.08)}
+  .btn-good{background:#13402f;border-color:var(--good);color:#bff5e2}
+  .btn-bad{background:#42171a;border-color:var(--bad);color:#ffd4d4}
+  .btnrow{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+  .chip{display:inline-block;background:var(--chip);border:1px solid var(--line);border-radius:8px;padding:3px 9px;font-size:12px;color:var(--muted);margin:2px 4px 2px 0}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:center}
+  th{color:var(--muted);font-weight:600;background:var(--panel2)}
+  td.l,th.l{text-align:left}
+  .num{font-variant-numeric:tabular-nums}
+  .out{color:var(--bad);font-weight:700}
+  .ok{color:var(--good)}
+  canvas{width:100%;height:auto;background:var(--panel2);border:1px solid var(--line);border-radius:10px;display:block}
+  .kpi{display:flex;gap:10px;flex-wrap:wrap}
+  .kpi .box{flex:1;min-width:120px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px}
+  .kpi .v{font-size:20px;font-weight:800;font-variant-numeric:tabular-nums}
+  .kpi .k{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+  select,input[type=number]{font:inherit;background:var(--panel2);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:8px}
+  label{font-size:13px;color:var(--muted)}
+  .field{display:flex;flex-direction:column;gap:5px;margin-bottom:8px}
+  .banner{border-radius:10px;padding:12px 14px;margin:10px 0;font-size:14px;border:1px solid}
+  .banner.good{background:#10301f;border-color:var(--good)}
+  .banner.warn{background:#3a3110;border-color:var(--warn)}
+  .banner.bad{background:#3a1417;border-color:var(--bad)}
+  .quiz-opt{display:block;width:100%;text-align:left;margin:6px 0}
+  .quiz-opt.correct{background:#13402f;border-color:var(--good)}
+  .quiz-opt.wrong{background:#42171a;border-color:var(--bad)}
+  .progress{height:8px;background:var(--panel2);border-radius:999px;overflow:hidden;border:1px solid var(--line)}
+  .progress>i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--good));width:0;transition:.4s}
+  .scoreboard{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .badge{background:var(--chip);border:1px solid var(--line);border-radius:8px;padding:5px 10px;font-size:13px}
+  .hidden{display:none}
+  .small{font-size:12.5px}
+  details{border:1px solid var(--line);border-radius:10px;padding:8px 12px;background:var(--panel2);margin-top:8px}
+  summary{cursor:pointer;color:var(--accent);font-weight:600}
+  .legend{font-size:12px;color:var(--muted);display:flex;gap:14px;flex-wrap:wrap;margin-top:6px}
+  .legend i{display:inline-block;width:18px;height:3px;vertical-align:middle;margin-right:5px}
+  .ribbon{font-size:12px;color:var(--muted);margin-top:4px}
+  .station{font-size:13px}
+  footer{color:var(--muted);font-size:12px;text-align:center;padding:20px 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div>
+    <div class="logo">Aero<span>SPC</span></div>
+    <div class="tag">Statistical Quality Control Simulator — Turbine Blade &amp; Avionics Line</div>
+  </div>
+  <div class="pill" id="roundPill">Round 0 / 6</div>
+</header>
+
+<div class="panel">
+  <div class="progress"><i id="prog"></i></div>
+  <div class="scoreboard" style="margin-top:10px">
+    <span class="badge">Score: <b id="scorePct">100</b>%</span>
+    <span class="badge">Correct decisions: <b id="dec">0</b></span>
+    <span class="badge">Missed decisions: <b id="missed">0</b></span>
+    <span class="badge">Quality cost: $<b id="cost">0</b>k</span>
+    <span class="badge">Scrap: <b id="scrap">0</b> kg</span>
+    <span class="badge">Uptime: <b id="uptime">100</b>%</span>
+    <span class="badge">Downtime: <b id="downtime">0</b>%</span>
+    <span class="badge" id="phaseBadge">Phase: Briefing</span>
+  </div>
+</div>
+
+<!-- ===================== INTRO ===================== -->
+<div id="screen-intro">
+  <div class="panel">
+    <h2>Mission Briefing — Meridian Aerospace, Plant 7</h2>
+    <p>You are the <b>Quality Engineering lead</b> for the production line that machines and inspects
+    <b>Ni-superalloy turbine blades</b> and assembles <b>avionics flight-control boards</b> for a next-gen regional jet.
+    Every lot you release is flight-critical. Across <b>6 rounds</b> you will, each time: <b>(A)</b> read the SPC
+    data and decide whether to <b>continue</b> production or <b>stop the line</b>; <b>(B)</b> if you stop, review the
+    station log and pick the <b>assignable cause</b> behind the signal; then <b>(C)</b> watch fresh data to see
+    whether your fix actually cleared the problem. Stopping a stable process wastes uptime; running through a real
+    signal ships defective hardware — both show up in your quality-cost tally.</p>
+
+    <h3>The control charts you will use</h3>
+    <div class="grid cols-2">
+      <div class="panel" style="margin:0">
+        <b>X̄ &amp; R charts</b> — <span class="muted">variables data</span><br>
+        <span class="small muted">Variables data from machining, pressure, and dimensional checks.
+        X̄ catches shifts in the <i>mean</i>; R catches shifts in <i>variability / spread</i>.
+        Limits use the standard A₂, D₃, D₄ subgroup factors.</span>
+      </div>
+      <div class="panel" style="margin:0">
+        <b>p-chart</b> — <span class="muted">fraction defective</span><br>
+        <span class="small muted">Solder-joint pass/fail on avionics boards. Used when you can count defectives
+        <i>and</i> the sample size, so a proportion p̂ can be computed.</span>
+      </div>
+      <div class="panel" style="margin:0">
+        <b>c-chart</b> — <span class="muted">count of defects</span><br>
+        <span class="small muted">Surface flaws per coated blade. Used when you can count defects but not a
+        meaningful proportion. UCL/LCL = c̄ ± 3√c̄.</span>
+      </div>
+      <div class="panel" style="margin:0">
+        <b>Reading the signal</b><br>
+        <span class="small muted">A point past 3σ, a run of 8+ on one side, a 6+ point trend, or 2-of-3 past 2σ
+        all flag a special cause. No signal → continue. Real signal → stop, diagnose, fix, and re-verify.</span>
+      </div>
+    </div>
+
+    <h3>The equations (from your handout)</h3>
+    <div class="panel small" style="margin:0;font-variant-numeric:tabular-nums">
+      <div class="chip">X̄: CL = x̿</div>
+      <div class="chip">UCL/LCL = x̿ ± A₂·R̄</div>
+      <div class="chip">R: CL = R̄</div>
+      <div class="chip">UCL_R = D₄·R̄</div>
+      <div class="chip">LCL_R = D₃·R̄</div>
+      <div class="chip">p: CL = p̄</div>
+      <div class="chip">σ_p = √(p̄(1−p̄)/n)</div>
+      <div class="chip">UCL/LCL = p̄ ± 3σ_p (LCL≥0)</div>
+      <div class="chip">c: CL = c̄</div>
+      <div class="chip">UCL/LCL = c̄ ± 3√c̄ (LCL≥0)</div>
+    </div>
+
+    <h3>Western Electric run rules you'll apply</h3>
+    <p class="small muted">Beyond a single point past 3σ, watch for: 8 consecutive points on one side of the
+    centerline (mean shift), a steady trend of 6+ rising/falling points (tool wear / drift), and 2-of-3 points
+    beyond 2σ (emerging instability). These distinguish real special-cause signals from random common-cause noise.</p>
+
+    <div class="btnrow">
+      <button class="btn-primary" onclick="startGame()">Begin Shift — Round 1 ▶</button>
+    </div>
+    <p class="small muted" style="margin-top:10px">You'll run <b>10 rounds</b>, each drawn at random from a large bank of
+    aerospace production scenarios. The mix of X̄-R, p-, and c-charts — and which are stable vs. faulty — changes every shift,
+    so no two runs are alike.</p>
+  </div>
+</div>
+
+<!-- ===================== ROUND ===================== -->
+<div id="screen-round" class="hidden">
+  <div class="panel">
+    <h2 id="roundTitle"></h2>
+    <div class="station" id="roundScenario"></div>
+    <div class="ribbon" id="roundChartType"></div>
+  </div>
+
+  <div class="panel">
+    <div id="phaseLabel" class="muted small" style="margin-bottom:6px;font-weight:700;letter-spacing:.5px;text-transform:uppercase"></div>
+    <div class="kpi" id="kpi"></div>
+    <div style="margin-top:12px">
+      <canvas id="chart" width="1000" height="420"></canvas>
+      <div class="legend" id="legend"></div>
+    </div>
+    <details>
+      <summary>Show subgroup data &amp; computed limits</summary>
+      <div id="dataTable" style="overflow-x:auto;margin-top:8px"></div>
+    </details>
+  </div>
+
+  <!-- STAGE 1: Stop or continue -->
+  <div class="panel" id="stageRun">
+    <h3>Decision Point A — Run the line or stop it?</h3>
+    <p class="small">You are the quality engineer on station. Read the chart above against your control limits and the
+    Western Electric run rules. Based on the evidence, what is your call <b>right now</b>?</p>
+    <div class="btnrow">
+      <button class="btn-good" onclick="decideRun(true)">▶ Continue production — process looks in control</button>
+      <button class="btn-bad" onclick="decideRun(false)">■ Stop the line — I see an out-of-control signal</button>
+    </div>
+    <div id="runFb"></div>
+  </div>
+
+  <!-- STAGE 2: choose the cause (only after a STOP) -->
+  <div class="panel hidden" id="stageDiag">
+    <h3>Decision Point B — Failure-mode analysis</h3>
+    <p class="small">Line stopped. Maintenance hands you the station log. Several things happened this shift —
+    pick the <b>one</b> assignable cause you believe produced the signal in the data, and your team will act on it.</p>
+    <div id="diagOpts"></div>
+    <div id="diagFb"></div>
+  </div>
+
+  <!-- STAGE 3: effect of the fix -->
+  <div class="panel hidden" id="stageVerify">
+    <h3>Decision Point C — Verify the corrective action</h3>
+    <p class="small" id="verifyIntro"></p>
+    <canvas id="chart2" width="1000" height="420"></canvas>
+    <div class="legend" id="legend2"></div>
+    <div id="verifyFb"></div>
+    <div class="btnrow"><button class="btn-primary hidden" id="nextBtn" onclick="nextRound()">Continue ▶</button></div>
+  </div>
+</div>
+
+<!-- ===================== SUMMARY ===================== -->
+<div id="screen-end" class="hidden">
+  <div class="panel">
+    <h2>Shift Debrief</h2>
+    <div class="kpi" id="endKpi"></div>
+    <div id="endBanner"></div>
+    <h3>Round-by-round performance</h3>
+    <div id="endTable"></div>
+    <h3>Key takeaways</h3>
+    <ul class="small muted" id="endTakeaways"></ul>
+
+    <div id="certBlock" class="hidden panel" style="margin-top:6px;background:var(--panel2)">
+      <h3 style="margin-top:0">🎓 Certificate of Completion unlocked</h3>
+      <p class="small muted">You reached Quality Engineer I or above (70%+). Enter your name and download your certificate as a PNG image you can save, print, or submit.</p>
+      <div class="field" style="max-width:360px">
+        <label for="certName">Name on certificate</label>
+        <input id="certName" type="text" placeholder="Your full name" />
+      </div>
+      <div class="btnrow"><button class="btn-good" onclick="downloadCertificate()">⬇ Download certificate (PNG)</button></div>
+    </div>
+    <div id="certLocked" class="hidden small muted" style="margin-top:6px">
+      A completion certificate is awarded at the <b>Quality Engineer I</b> level (<b>70%</b>) or above. Run another shift to improve your score.
+    </div>
+
+    <div class="btnrow">
+      <button class="btn-primary" onclick="location.reload()">Run a new shift ↻</button>
+    </div>
+  </div>
+</div>
+
+<footer>AeroSPC teaching simulator · X̄-R / p / c charts · Western Electric rules · stop/continue · failure-mode analysis · verified corrective action.</footer>
+</div>
+
+<script>
+/* ============ control-chart subgroup factors (A2, D3, D4) ============ */
+const F = {
+  2:{A2:1.88,D3:0,D4:3.27},3:{A2:1.02,D3:0,D4:2.57},4:{A2:0.73,D3:0,D4:2.28},
+  5:{A2:0.58,D3:0,D4:2.11},6:{A2:0.48,D3:0,D4:2.00},7:{A2:0.42,D3:0.08,D4:1.92},
+  8:{A2:0.37,D3:0.14,D4:1.86},9:{A2:0.34,D3:0.18,D4:1.82},10:{A2:0.31,D3:0.22,D4:1.78}
+};
+
+/* ============ PRNG ============ */
+let seed = Math.floor(Math.random()*1e9);
+function rng(){ seed = (seed*1664525 + 1013904223) % 4294967296; return seed/4294967296; }
+function gauss(m,s){ let u=0,v=0; while(!u)u=rng(); while(!v)v=rng(); return m + s*Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v); }
+function round(x,d){ const p=Math.pow(10,d); return Math.round(x*p)/p; }
+function poisson(lam){ let L=Math.exp(-lam),p=1,x=0; do{x++;p*=rng();}while(p>L); return x-1; }
+
+/* ============ game state ============ */
+let state = { round:0, earnedPts:0, maxPts:0, missedCalls:0, missedDiag:0, runCorrect:0, fixCorrect:0, cost:0, scrapKg:0, uptimeMin:0, downtimeMin:0, results:[] };
+
+/* production-time & scrap model (per round = one 120-min production block) */
+const BLOCK_MIN = 120;            // scheduled production minutes per round
+const STOP_DOWNTIME = 25;         // minutes lost to a correct, planned stop + diagnosis
+const BADFIX_DOWNTIME = 20;       // extra minutes lost each time a wrong fix keeps the line down
+const RANTHROUGH_DOWNTIME = 40;   // minutes lost reacting after running through a real signal
+const OVERCTRL_DOWNTIME = 15;     // minutes lost stopping a stable (in-control) process
+const SCRAP_PER_FAULT = 18;       // kg scrapped from product made while the fault was active
+const SCRAP_PER_BADFIX = 12;      // kg scrapped from continued bad product after a wrong fix
+const SCRAP_PER_RANTHROUGH = 15;  // kg of defective lots that shipped/were caught downstream
+
+/* scoring model — every decision is worth points; misses cost points */
+const PTS_CALL = 10;              // points for a correct stop/continue call
+const PTS_DIAG = 10;              // points available for the diagnosis (faulty rounds)
+const PTS_DIAG_PENALTY = 4;       // points deducted per wrong diagnosis attempt (floor 0)
+
+const TOTAL = 10;
+
+/* ============ SCENARIO BANK ============
+   A large pool of aerospace production scenarios across X̄-R, p-, and c-charts.
+   Each carries ONE ground-truth state:
+     faulty:false -> genuinely in control (correct call = CONTINUE)
+     faulty:true  -> an assignable cause is active and the data shows the signal
+   For faulty scenarios, causes[] are station-log events; exactly one has fix:true.
+   Picking the right cause regenerates data with the fault removed (signal clears);
+   a wrong cause leaves the fault active (signal persists on the verify chart).
+*/
+const BANK = [
+
+/* ---------- X-BAR / R : STABLE (correct = CONTINUE) ---------- */
+{ chart:'xbarR', n:5, mu:12.00, sigma:0.020, dec:3, unit:'mm', faulty:false,
+  title:'Blade root-fillet diameter (X̄ & R)',
+  chartType:'X̄ & R · variables · n = 5 · target 12.00 mm',
+  scenario:'Cell 3 finish-grinds the root fillet of each turbine blade. You pull 5 blades every 30 min and record fillet diameter (mm). Decide whether to certify the lots running now.',
+  runEx:'All X̄ and R points sit inside the limits with no runs or trends — only common-cause variation. CONTINUE. Stopping a stable process is tampering: it adds variation and wastes uptime.' },
+
+{ chart:'xbarR', n:4, mu:25.40, sigma:0.015, dec:3, unit:'mm', faulty:false,
+  title:'Landing-gear pin outer diameter (X̄ & R)',
+  chartType:'X̄ & R · variables · n = 4 · target 25.40 mm',
+  scenario:'A CNC lathe turns titanium landing-gear pins. Four pins are measured each hour. Decide whether the process is fit to keep running.',
+  runEx:'Both charts are in control — random scatter within limits, no runs or trends. CONTINUE; there is no signal to act on.' },
+
+{ chart:'xbarR', n:5, mu:550, sigma:4.0, dec:1, unit:'°C', faulty:false,
+  title:'Autoclave cure temperature (X̄ & R)',
+  chartType:'X̄ & R · variables · n = 5 · target 550 °C',
+  scenario:'Composite wing skins cure in an autoclave; five thermocouples are sampled each cycle. Decide whether to release the cured panels.',
+  runEx:'Temperature averages and ranges are stable inside the limits. CONTINUE — the cure process shows only common-cause variation.' },
+
+{ chart:'xbarR', n:6, mu:0.250, sigma:0.004, dec:3, unit:'in', faulty:false,
+  title:'Rivet-hole diameter, fuselage (X̄ & R)',
+  chartType:'X̄ & R · variables · n = 6 · target 0.250 in',
+  scenario:'Automated drilling sets rivet holes in fuselage panels; six holes are gauged per panel. Decide whether to keep drilling.',
+  runEx:'No points beyond limits, no runs, no trends. CONTINUE; the drill process is in statistical control.' },
+
+/* ---------- X-BAR / R : MEAN SHIFT (correct = STOP; fix = the mean-cause) ---------- */
+{ chart:'xbarR', n:5, mu:12.00, sigma:0.020, dec:3, unit:'mm', faulty:true,
+  fault:{kind:'meanshift', at:11, delta:0.050},
+  title:'Fillet diameter, second shift (X̄ & R)',
+  chartType:'X̄ & R · variables · n = 5',
+  scenario:'Same grinding cell, second shift. Read the charts and decide whether to keep certifying lots.',
+  runEx:'The X̄ points climb above the upper limit and stay there (a run above centerline) while R stays in control — a sustained MEAN shift. STOP and investigate.',
+  causes:[
+    {t:'A new coolant batch was loaded mid-run, changing grind temperature so parts ran oversize', fix:true,
+      ex:'Correct. The mean stepped up at the coolant change with spread unchanged — the classic X̄-only shift. Reverting to the qualified coolant removes the cause.'},
+    {t:'A fixture clamp is loosening intermittently, scattering individual readings', fix:false,
+      ex:'That inflates within-subgroup RANGE and trips the R chart. Here R is in control and only the mean shifted, so this fix will not clear the signal.'},
+    {t:'Random common-cause variation; nothing actually changed', fix:false,
+      ex:'A sustained one-sided run is a special-cause signature, not noise. Treating it as noise leaves the shift in place.'} ],
+  fixIntro:'Your team reverts to the qualified coolant batch and runs fresh subgroups:',
+  failIntro:'Your team acts on that cause, but it was not what moved the mean. Fresh subgroups still show the shift:' },
+
+{ chart:'xbarR', n:4, mu:25.40, sigma:0.015, dec:3, unit:'mm', faulty:true,
+  fault:{kind:'meanshift', at:12, delta:0.045},
+  title:'Landing-gear pin diameter drift (X̄ & R)',
+  chartType:'X̄ & R · variables · n = 4',
+  scenario:'The titanium-pin lathe has been running for hours. Read the charts and decide whether to keep turning parts.',
+  runEx:'X̄ shifts and holds above the upper limit while R stays put — the mean moved without a change in spread. STOP.',
+  causes:[
+    {t:'A worn insert was replaced with a new tool set to the wrong offset, shifting the cut diameter', fix:true,
+      ex:'Correct. A tool-offset error steps the mean while spread stays constant. Re-set the offset to the qualified value and the mean returns.'},
+    {t:'Coolant flow became turbulent, randomly scattering individual pins', fix:false,
+      ex:'Random scatter shows on the R chart, not as a sustained mean shift. R is in control here, so this is not the cause.'},
+    {t:'The gauge needs calibration but the parts are fine', fix:false,
+      ex:'If only the gauge drifted you would verify with a master; here the shift tracks a real tool change, so blaming the gauge leaves bad parts cutting.'} ],
+  fixIntro:'The tool offset is corrected to the qualified value and fresh pins are measured:',
+  failIntro:'The action does not address the offset error, so the mean stays shifted:' },
+
+{ chart:'xbarR', n:5, mu:550, sigma:4.0, dec:1, unit:'°C', faulty:true,
+  fault:{kind:'meanshift', at:10, delta:11},
+  title:'Autoclave temperature excursion (X̄ & R)',
+  chartType:'X̄ & R · variables · n = 5',
+  scenario:'Mid-shift the autoclave cure temperatures look different. Decide whether to keep releasing cured panels.',
+  runEx:'Average cure temperature shifts up and stays high while range is unchanged — a mean excursion. Under-cure/over-cure risk: STOP.',
+  causes:[
+    {t:'A heater-control setpoint was bumped during a recipe edit, raising the cure temperature', fix:true,
+      ex:'Correct. A setpoint change moves the mean uniformly with no extra spread. Restore the qualified recipe setpoint.'},
+    {t:'One thermocouple is intermittently faulty, scattering readings', fix:false,
+      ex:'A flaky sensor widens the range (R chart), it does not produce a clean sustained mean shift. R is in control, so this is not it.'},
+    {t:'Normal cycle-to-cycle variation in a big autoclave', fix:false,
+      ex:'A sustained one-sided shift is not normal variation. Ignoring it risks shipping improperly cured composite.'} ],
+  fixIntro:'The qualified setpoint is restored and the next cycles are sampled:',
+  failIntro:'The setpoint error is untouched, so the temperature mean stays elevated:' },
+
+{ chart:'xbarR', n:6, mu:0.250, sigma:0.004, dec:3, unit:'in', faulty:true,
+  fault:{kind:'meanshift', at:13, delta:0.011},
+  title:'Rivet-hole diameter shift (X̄ & R)',
+  chartType:'X̄ & R · variables · n = 6',
+  scenario:'The fuselage drilling cell has produced several panels. Read the charts and decide whether to keep drilling.',
+  runEx:'X̄ rises above the limit and persists while R is stable — the hole diameter mean grew without added scatter. STOP.',
+  causes:[
+    {t:'A new drill bit with a slightly larger nominal diameter was installed at the panel change', fix:true,
+      ex:'Correct. A different bit diameter shifts the mean cleanly. Install the correct qualified bit and the mean recovers.'},
+    {t:'The drill spindle bearing is failing, causing erratic hole sizes', fix:false,
+      ex:'Bearing wear would scatter individual holes and inflate R. R is in control, so this is not the active cause.'},
+    {t:'Just re-center the chart limits around the new average', fix:false,
+      ex:'Re-centering limits to absorb a real shift hides the signal — oversized holes keep being drilled into flight structure.'} ],
+  fixIntro:'The correct qualified drill bit is installed and new panels are gauged:',
+  failIntro:'The wrong bit is still in the spindle, so the diameter mean stays high:' },
+
+/* ---------- X-BAR / R : DISPERSION (R) SHIFT (correct = STOP; fix = spread-cause) ---------- */
+{ chart:'xbarR', n:5, mu:840, sigma:6.5, dec:1, unit:'psi', faulty:true,
+  fault:{kind:'spreadshift', at:12, mult:2.7},
+  title:'Airfoil wall pressure test (X̄ & R)',
+  chartType:'X̄ & R · variables · n = 5 · burst-test psi',
+  scenario:'Each blade airfoil is pressure-tested to burst margin (psi). Read both charts and decide whether to keep releasing.',
+  runEx:'Subgroup RANGES spike above UCL_R while X̄ stays centered — dispersion is out of control though the mean is fine. Because X̄ limits are built from R̄, you cannot trust them while R is unstable: STOP.',
+  causes:[
+    {t:'A test-fixture clamp is loosening intermittently, so some readings in each subgroup scatter wide', fix:true,
+      ex:'Correct. Intermittent clamping inflates within-subgroup range — exactly what the R chart caught. Re-secure/replace the clamp.'},
+    {t:'The pressure regulator drifted, raising the average burst reading', fix:false,
+      ex:'A regulator drift shifts the MEAN (X̄), not the range. X̄ is in control here, so this leaves the variability problem in place.'},
+    {t:'Nothing is wrong; wide ranges are normal at these pressures', fix:false,
+      ex:'Points beyond UCL_R are a special-cause signal, not normal scatter. Ignoring it lets untrustworthy data keep flowing.'} ],
+  fixIntro:'Maintenance re-secures and re-qualifies the test-fixture clamp, then re-runs subgroups:',
+  failIntro:'The real source of scatter is untouched. The R chart is still out of control:' },
+
+{ chart:'xbarR', n:5, mu:12.00, sigma:0.020, dec:3, unit:'mm', faulty:true,
+  fault:{kind:'spreadshift', at:11, mult:2.8},
+  title:'Fillet grinding — rising variability (X̄ & R)',
+  chartType:'X̄ & R · variables · n = 5',
+  scenario:'On the blade-grinding cell the averages look centered but something feels off. Decide whether to keep certifying.',
+  runEx:'Ranges break above UCL_R while X̄ stays put — within-subgroup spread increased. Fix dispersion before trusting the mean: STOP.',
+  causes:[
+    {t:'The grinding-wheel spindle developed runout/vibration, scattering part sizes within each subgroup', fix:true,
+      ex:'Correct. Spindle runout adds part-to-part variation and inflates R. Dress/replace the wheel and correct the runout.'},
+    {t:'A coolant-concentration change shifted the average size', fix:false,
+      ex:'A concentration change would move the MEAN (X̄), not widen the range. X̄ is in control, so this is not the cause.'},
+    {t:'Widen the R-chart limits so the points fall back inside', fix:false,
+      ex:'Widening limits to silence the R chart hides real instability — the inconsistent parts keep shipping.'} ],
+  fixIntro:'The spindle runout is corrected and the wheel re-dressed, then subgroups re-run:',
+  failIntro:'The vibration source remains, so the ranges stay out of control:' },
+
+{ chart:'xbarR', n:4, mu:25.40, sigma:0.015, dec:3, unit:'mm', faulty:true,
+  fault:{kind:'spreadshift', at:13, mult:3.0},
+  title:'Landing-gear pin — erratic sizing (X̄ & R)',
+  chartType:'X̄ & R · variables · n = 4',
+  scenario:'The pin lathe averages look fine but the ranges are growing. Decide whether to keep turning parts.',
+  runEx:'R points exceed UCL_R while X̄ holds steady — the within-subgroup spread blew up. STOP and stabilize dispersion first.',
+  causes:[
+    {t:'The collet/workholding is worn and grips pins inconsistently, scattering diameters', fix:true,
+      ex:'Correct. Inconsistent workholding widens within-subgroup range. Replace the collet to restore stable spread.'},
+    {t:'A tool-offset error shifted the average diameter', fix:false,
+      ex:'An offset error shifts the MEAN, tripping X̄ — not the range. X̄ is in control, so this is not the cause.'},
+    {t:'Recompute R̄ using only the calm early subgroups', fix:false,
+      ex:'Cherry-picking data to shrink R̄ hides the instability rather than fixing the worn workholding.'} ],
+  fixIntro:'The worn collet is replaced and fresh pins are measured:',
+  failIntro:'The worn workholding is still in service, so the ranges remain out of control:' },
+
+/* ---------- p-CHART : STABLE (correct = CONTINUE) ---------- */
+{ chart:'p', n:200, dec:4, faulty:false, fault:{kind:"p", base:0.030, at:99, newp:0.030},
+  title:'Solder-joint defectives, steady line (p-chart)',
+  chartType:'p-chart · fraction defective · n = 200 boards',
+  scenario:'Each subgroup is 200 reflow-soldered flight-control boards; AOI flags any board with a bad joint. Decide whether to keep shipping.',
+  runEx:'p̂ varies randomly around p̄ with no point beyond the limits and no run — common-cause only. CONTINUE; there is no special cause to chase.' },
+
+{ chart:'p', n:150, dec:4, faulty:false, fault:{kind:"p", base:0.040, at:99, newp:0.040},
+  title:'Fastener torque-check failures (p-chart)',
+  chartType:'p-chart · fraction defective · n = 150 fasteners',
+  scenario:'150 wing fasteners per lot get an automated torque check; failures are counted. Decide whether to keep releasing lots.',
+  runEx:'The failure fraction wanders inside the limits with no signal. CONTINUE — the process is in statistical control.' },
+
+/* ---------- p-CHART : OUT OF CONTROL (correct = STOP) ---------- */
+{ chart:'p', n:200, dec:4, faulty:true, fault:{kind:'p', base:0.030, at:15, newp:0.090},
+  title:'Avionics solder-joint defectives (p-chart)',
+  chartType:'p-chart · fraction defective · n = 200 boards',
+  scenario:'Each subgroup is 200 reflow-soldered flight-control boards; AOI flags any board with ≥1 bad joint. Decide whether to keep shipping boards.',
+  runEx:'p̂ holds near p̄ then a cluster of points punches above UCL — a special-cause rise in fraction defective. STOP and contain.',
+  causes:[
+    {t:'A new solder-paste lot was loaded and the stencil was not re-cleaned — starved/contaminated joints', fix:true,
+      ex:'Correct. The defective fraction jumped at the paste-lot/stencil change. Quarantine boards from the signal onward, clean the stencil, re-qualify the paste.'},
+    {t:'AOI camera lighting drifted, so good joints were miscounted as bad', fix:false,
+      ex:'A measurement issue is worth ruling out, but teardown confirms real cold joints tied to the paste change. This fix would not lower the true defect rate.'},
+    {t:'Normal lot-to-lot variation; recompute p̄ to include the high points', fix:false,
+      ex:'Never absorb out-of-control points into the centerline — that hides a real special cause. Bad boards keep shipping.'} ],
+  fixIntro:'You quarantine suspect boards, clean the stencil and re-qualify the paste lot, then re-run subgroups:',
+  failIntro:'The chosen action does not touch the real cause, so the defective fraction stays elevated:' },
+
+{ chart:'p', n:150, dec:4, faulty:true, fault:{kind:'p', base:0.040, at:14, newp:0.115},
+  title:'Wing-fastener torque failures (p-chart)',
+  chartType:'p-chart · fraction defective · n = 150 fasteners',
+  scenario:'150 fasteners per lot get a torque check. Midway the failure rate looks higher. Decide whether to keep releasing lots.',
+  runEx:'Defective fraction breaks above UCL after a clear step — a special cause raised the failure rate. STOP and contain.',
+  causes:[
+    {t:'The pneumatic torque tool lost calibration and is under-torquing a share of fasteners', fix:true,
+      ex:'Correct. A drifted torque tool raises true failures. Re-calibrate (or swap) the tool and re-qualify, then confirm p̂ returns to baseline.'},
+    {t:'The inspector started recording pass/fail in a new spreadsheet', fix:false,
+      ex:'A logging change does not create real under-torqued fasteners. The defects are physical, so this leaves the problem in place.'},
+    {t:'Raise the UCL so the high points are no longer flagged', fix:false,
+      ex:'Inflating the limit to silence the signal ships under-torqued flight fasteners — never acceptable.'} ],
+  fixIntro:'The torque tool is re-calibrated and re-qualified, then new lots are checked:',
+  failIntro:'The mis-calibrated tool is still in use, so the failure fraction stays high:' },
+
+{ chart:'p', n:120, dec:4, faulty:true, fault:{kind:'p', base:0.025, at:13, newp:0.10},
+  title:'Composite-ply defective panels (p-chart)',
+  chartType:'p-chart · fraction defective · n = 120 panels',
+  scenario:'120 composite panels per batch are ultrasonically inspected and marked pass/fail for delamination. Decide whether to keep laying up panels.',
+  runEx:'The defective fraction steps above UCL — a special-cause rise in delamination rejects. STOP and contain the batches.',
+  causes:[
+    {t:'Prepreg material was used past its out-time, reducing tack and causing delaminations', fix:true,
+      ex:'Correct. Expired out-time prepreg drives real delamination rejects. Switch to in-spec material and re-qualify, then confirm the rate drops.'},
+    {t:'The ultrasonic scanner gain was nudged, so good panels read as flawed', fix:false,
+      ex:'A scanner-gain issue is a measurement concern, but confirmed delaminations are real here. This fix would not reduce true defects.'},
+    {t:'Fold the high points into p̄ — it is just batch variation', fix:false,
+      ex:'Absorbing special-cause points into the centerline hides the out-time problem; delaminated panels keep moving forward.'} ],
+  fixIntro:'In-spec prepreg is loaded and re-qualified, then new batches are inspected:',
+  failIntro:'Expired material is still in use, so the delamination fraction stays elevated:' },
+
+/* ---------- c-CHART : STABLE (correct = CONTINUE) ---------- */
+{ chart:'c', cbar:4.0, dec:1, faulty:false, fault:{kind:"c", base:4.0, at:99, newc:4.0},
+  title:'Coating flaws, steady booth (c-chart)',
+  chartType:'c-chart · defects per unit · 1 blade / subgroup',
+  scenario:'Each ceramic-coated blade is scanned for surface defects and the flaw count is logged. Decide whether to keep coating.',
+  runEx:'Flaw counts vary randomly around c̄ with nothing beyond the limits — common-cause only. CONTINUE.' },
+
+{ chart:'c', cbar:3.0, dec:1, faulty:false, fault:{kind:"c", base:3.0, at:99, newc:3.0},
+  title:'Weld defects per assembly, steady (c-chart)',
+  chartType:'c-chart · defects per unit · 1 weldment / subgroup',
+  scenario:'Each engine-mount weldment is radiographed and indications are counted. Decide whether to keep welding.',
+  runEx:'Indication counts scatter within the limits with no signal. CONTINUE — the weld process is in control.' },
+
+/* ---------- c-CHART : OUT OF CONTROL (correct = STOP) ---------- */
+{ chart:'c', cbar:4.0, dec:1, faulty:true, fault:{kind:'c', base:4.0, at:17, newc:12.0},
+  title:'Thermal-barrier coating flaws (c-chart)',
+  chartType:'c-chart · defects per unit · 1 coated blade / subgroup',
+  scenario:'Each ceramic-coated blade is scanned for surface defects (pits, spalls, inclusions) and the flaw count is logged. Decide whether to keep coating.',
+  runEx:'Flaw counts run near c̄ then break above UCL = c̄ + 3√c̄ — an upward special-cause signal. STOP the booth.',
+  causes:[
+    {t:'A spray-booth nozzle began clogging, producing uneven coating and more flaws', fix:true,
+      ex:'Correct. The count climbed as the nozzle clogged. Service/replace the nozzle and verify the spray pattern.'},
+    {t:'The inspector changed and counts more strictly now', fix:false,
+      ex:'An appraiser change is a measurement concern, but teardown confirms real added pits/spalls tied to spray quality. Swapping inspectors would not fix the coating.'},
+    {t:'Lower the centerline c̄ so the high points fall inside the limits', fix:false,
+      ex:'Manipulating the centerline to silence a signal is not corrective action — the physical defects remain on flight hardware.'} ],
+  fixIntro:'The booth is stopped, the nozzle serviced and the spray pattern re-qualified, then blades are re-inspected:',
+  failIntro:'The clogging nozzle is still in service, so flaw counts stay high:' },
+
+{ chart:'c', cbar:3.0, dec:1, faulty:true, fault:{kind:'c', base:3.0, at:16, newc:10.0},
+  title:'Engine-mount weld indications (c-chart)',
+  chartType:'c-chart · defects per unit · 1 weldment / subgroup',
+  scenario:'Each engine-mount weldment is radiographed and porosity/indication counts are logged. Decide whether to keep welding.',
+  runEx:'Indication counts jump above UCL — a special-cause rise in weld defects. STOP and find the assignable cause.',
+  causes:[
+    {t:'The shielding-gas line developed a leak, admitting air and causing weld porosity', fix:true,
+      ex:'Correct. Lost shielding gas drives porosity and indications. Repair the gas line and re-qualify, then confirm counts drop.'},
+    {t:'A new radiographer is logging more indications for the same welds', fix:false,
+      ex:'An appraiser change is a measurement concern, but the porosity is confirmed real and tied to shielding loss. This fix would not reduce defects.'},
+    {t:'Average the high counts with the earlier low ones and continue', fix:false,
+      ex:'Blending counts to mask the signal leaves porous welds in flight-critical engine mounts.'} ],
+  fixIntro:'The shielding-gas leak is repaired and re-qualified, then new weldments are radiographed:',
+  failIntro:'The gas leak persists, so the indication counts stay elevated:' },
+
+{ chart:'c', cbar:5.0, dec:1, faulty:true, fault:{kind:'c', base:5.0, at:15, newc:14.0},
+  title:'Machined-surface scratches (c-chart)',
+  chartType:'c-chart · defects per unit · 1 part / subgroup',
+  scenario:'Each machined hydraulic manifold is inspected and surface scratches are counted. Decide whether to keep machining.',
+  runEx:'Scratch counts break above UCL — a special-cause increase in surface defects. STOP.',
+  causes:[
+    {t:'Metal chips are not clearing the work zone and are dragging across finished surfaces', fix:true,
+      ex:'Correct. Poor chip evacuation scratches finished faces. Restore chip-clearing (air/coolant flow) and re-verify counts fall.'},
+    {t:'The inspection light was changed to a brighter lamp', fix:false,
+      ex:'Brighter light might reveal cosmetic marks, but the added scratches here are real and tied to chip dragging. A lamp swap would not fix the surfaces.'},
+    {t:'Just raise c̄ to match the new higher counts', fix:false,
+      ex:'Re-baselining the centerline to the defective level normalizes the problem instead of fixing chip evacuation.'} ],
+  fixIntro:'Chip evacuation is restored and parts are re-inspected:',
+  failIntro:'Chips still drag across the surfaces, so scratch counts stay high:' },
+
+{ chart:'c', cbar:4.0, dec:1, faulty:true, fault:{kind:'c', base:4.0, at:18, newc:11.0},
+  title:'PCB conformal-coat voids (c-chart)',
+  chartType:'c-chart · defects per unit · 1 board / subgroup',
+  scenario:'Each conformally coated avionics board is inspected under UV and coating voids/bubbles are counted. Decide whether to keep coating boards.',
+  runEx:'Void counts climb above UCL — a special-cause rise. STOP and diagnose the coating process.',
+  causes:[
+    {t:'Coating viscosity rose as the material aged in the reservoir, trapping bubbles', fix:true,
+      ex:'Correct. Out-of-spec viscosity traps voids. Replace with fresh, in-spec coating and re-qualify, then confirm voids drop.'},
+    {t:'The UV inspection lamp was replaced and shows more detail', fix:false,
+      ex:'More visible detail is a measurement effect, but the voids here are real and tied to viscosity. A lamp change would not reduce them.'},
+    {t:'Increase the UCL so the high points stop flagging', fix:false,
+      ex:'Inflating the limit to hide the signal ships boards with coating voids that compromise protection.'} ],
+  fixIntro:'Fresh in-spec coating is loaded and re-qualified, then boards are re-inspected:',
+  failIntro:'The aged coating is still in use, so void counts remain high:' },
+
+];
+
+/* pick TOTAL rounds at random with guaranteed variety:
+   - at least 2 X̄-R, 2 p-chart, 2 c-chart
+   - a mix of stable and faulty (neither all-good nor all-bad)
+   - no scenario repeats within a shift */
+function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(rng()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+function pickRounds(){
+  const byType = {xbarR:[],p:[],c:[]};
+  BANK.forEach((b,i)=>byType[b.chart].push(i));
+  let chosen=[];
+  // guarantee minimum variety per chart type
+  const minPer = {xbarR:3, p:3, c:3};
+  for(const t of ['xbarR','p','c']){
+    const pool=shuffle(byType[t].slice());
+    chosen.push(...pool.slice(0,minPer[t]));
+  }
+  // fill remaining slots from the rest of the bank
+  const used=new Set(chosen);
+  const rest=shuffle(BANK.map((_,i)=>i).filter(i=>!used.has(i)));
+  for(const i of rest){ if(chosen.length>=TOTAL) break; chosen.push(i); }
+  chosen=chosen.slice(0,TOTAL);
+  // ensure a healthy mix of stable & faulty (at least 2 of each)
+  const isF=i=>!!BANK[i].faulty;
+  let faulty=chosen.filter(isF).length, stable=chosen.length-faulty;
+  function swapToward(wantFaulty){
+    const poolAll=shuffle(BANK.map((_,i)=>i).filter(i=>!chosen.includes(i)));
+    const cand=poolAll.find(i=>isF(i)===wantFaulty);
+    if(cand==null) return false;
+    const dropIdx=chosen.findIndex(i=>isF(i)!==wantFaulty);
+    if(dropIdx<0) return false;
+    chosen[dropIdx]=cand; return true;
+  }
+  let guard=0;
+  while(faulty<2 && guard++<20){ if(!swapToward(true)) break; faulty=chosen.filter(isF).length; }
+  guard=0;
+  while((chosen.length-chosen.filter(isF).length)<2 && guard++<20){ if(!swapToward(false)) break; }
+  shuffle(chosen);
+  // materialize as round defs with sequential display titles preserved
+  return chosen.map(i=>BANK[i]);
+}
+let ROUNDS = []; // filled at startGame
+
+/* ============ data generators (return plotted statistic + limits) ============ */
+function buildXbar(def, applyFault){
+  const k=20, n=def.n;
+  const subs=[];
+  for(let i=0;i<k;i++){
+    let m=def.mu, sd=def.sigma;
+    if(applyFault && def.fault){
+      if(def.fault.kind==='meanshift' && i>=def.fault.at) m+=def.fault.delta;
+      if(def.fault.kind==='spreadshift'&& i>=def.fault.at) sd*=def.fault.mult;
+    }
+    const v=[]; for(let j=0;j<n;j++) v.push(gauss(m,sd));
+    subs.push(v);
+  }
+  const xbar=subs.map(v=>v.reduce((a,b)=>a+b,0)/n);
+  const R=subs.map(v=>Math.max(...v)-Math.min(...v));
+  const xbb=xbar.reduce((a,b)=>a+b,0)/k, Rb=R.reduce((a,b)=>a+b,0)/k;
+  const f=F[n];
+  return {kind:'xbarR',n,xbar,R,dec:def.dec,
+    lim:{xCL:xbb,xUCL:xbb+f.A2*Rb,xLCL:xbb-f.A2*Rb,rCL:Rb,rUCL:f.D4*Rb,rLCL:f.D3*Rb}};
+}
+function buildP(def, applyFault){
+  const k=24, n=def.n, fl=def.fault;
+  const defs=[], ps=[];
+  for(let i=0;i<k;i++){
+    let p=fl.base; if(applyFault && i>=fl.at) p=fl.newp;
+    let d=0; for(let j=0;j<n;j++) if(rng()<p) d++;
+    defs.push(d); ps.push(d/n);
+  }
+  const pb=defs.reduce((a,b)=>a+b,0)/(n*k), sp=Math.sqrt(pb*(1-pb)/n);
+  return {kind:'p',n,vals:ps,defs,dec:def.dec,
+    lim:{CL:pb,UCL:pb+3*sp,LCL:Math.max(0,pb-3*sp)}};
+}
+function buildC(def, applyFault){
+  const k=25, fl=def.fault;
+  const vals=[];
+  for(let i=0;i<k;i++){
+    let lam=fl.base; if(applyFault && i>=fl.at) lam=fl.newc;
+    vals.push(poisson(lam));
+  }
+  const cb=vals.reduce((a,b)=>a+b,0)/k;
+  return {kind:'c',vals,dec:def.dec,
+    lim:{CL:cb,UCL:cb+3*Math.sqrt(cb),LCL:Math.max(0,cb-3*Math.sqrt(cb))}};
+}
+function buildData(def, applyFault){
+  // Guarantee the displayed data matches ground truth so grading is fair:
+  //  - applyFault=false  -> regenerate until the chart is genuinely in control
+  //  - applyFault=true   -> regenerate until the seeded fault actually shows a signal
+  let d, tries=0;
+  do{
+    if(def.chart==='xbarR') d=buildXbar(def,applyFault);
+    else if(def.chart==='p') d=buildP(def,applyFault);
+    else if(def.chart==='c') d=buildC(def,applyFault);
+    tries++;
+    const stable=isStable(d);
+    if(applyFault && !stable) break;     // fault present and visible
+    if(!applyFault && stable) break;     // clean and in control
+  } while(tries<60);
+  return d;
+}
+
+/* ============ helpers ============ */
+function el(id){return document.getElementById(id);}
+function show(id){['screen-intro','screen-round','screen-end'].forEach(s=>el(s).classList.add('hidden')); el(id).classList.remove('hidden');}
+function toggle(id){el(id).classList.toggle('hidden');}
+
+function startGame(){ ROUNDS=pickRounds(); state={round:0,earnedPts:0,maxPts:0,missedCalls:0,missedDiag:0,runCorrect:0,fixCorrect:0,cost:0,scrapKg:0,uptimeMin:0,downtimeMin:0,results:[]}; nextRound(); }
+
+let curDef=null, curData=null;
+function nextRound(){
+  if(state.round>=TOTAL){ endGame(); return; }
+  roundRec=null; updateHUD();
+  curDef=ROUNDS[state.round];
+  curData=buildData(curDef, curDef.faulty); // before-fix data; fault present iff faulty
+  el('roundTitle').textContent='Round '+(state.round+1)+' — '+curDef.title;
+  el('roundScenario').textContent=curDef.scenario;
+  el('roundChartType').innerHTML='Chart in play: <b>'+curDef.chartType+'</b>';
+  el('roundPill').textContent='Round '+(state.round+1)+' / '+TOTAL;
+  el('phaseBadge').textContent='Phase: Round '+(state.round+1)+' — inspect';
+  el('phaseLabel').textContent='Live process data — before any action';
+  el('prog').style.width=((state.round)/TOTAL*100)+'%';
+  drawKPI(curData); drawChart('chart','legend',curData); drawTable(curData);
+  // reset stages
+  el('stageRun').classList.remove('hidden');
+  [...el('stageRun').querySelectorAll('button')].forEach(b=>b.disabled=false);
+  el('runFb').innerHTML='';
+  el('stageDiag').classList.add('hidden'); el('diagFb').innerHTML=''; el('diagOpts').innerHTML='';
+  el('stageVerify').classList.add('hidden'); el('verifyFb').innerHTML='';
+  el('nextBtn').classList.add('hidden');
+  show('screen-round'); window.scrollTo({top:0,behavior:'smooth'});
+}
+
+/* ---- Stage 1: stop or continue ---- */
+let roundRec=null; // accumulates this round's outcome (downtime, scrap, attempts)
+function decideRun(chooseContinue){
+  [...el('stageRun').querySelectorAll('button')].forEach(b=>b.disabled=true);
+  const correctCall = chooseContinue ? !curDef.faulty : curDef.faulty;
+  roundRec = {r:state.round+1, title:curDef.title, faulty:curDef.faulty,
+              runOK:correctCall, fixOK:null, attempts:0,
+              callPts:0, diagPts:0, maxPts:(curDef.faulty?PTS_CALL+PTS_DIAG:PTS_CALL),
+              downtime:0, scrap:0, cost:0};
+  if(correctCall){ state.runCorrect++; roundRec.callPts=PTS_CALL; }
+  else { state.missedCalls++; }
+
+  if(!curDef.faulty){
+    // stable process — correct action is CONTINUE
+    if(chooseContinue){
+      roundRec.downtime=0; // full uptime
+      el('runFb').innerHTML='<div class="banner good">✔ Correct call — CONTINUE. '+curDef.runEx+'</div>';
+    } else {
+      // over-control: unnecessary stop
+      roundRec.cost+=20; roundRec.downtime+=OVERCTRL_DOWNTIME;
+      el('runFb').innerHTML='<div class="banner bad">✗ Over-control (tampering). You stopped a stable process — '
+        +OVERCTRL_DOWNTIME+' min of downtime and $20k lost for no quality gain. '+curDef.runEx+'</div>';
+    }
+    commitRoundTime();
+    state.results.push({...roundRec});
+    applyRoundToTotals(roundRec);
+    finishRoundButton();
+  } else {
+    // faulty process — correct action is STOP
+    if(chooseContinue){
+      // ran through a real signal: defective lots + forced reactive stop
+      roundRec.cost+=120; roundRec.scrap+=SCRAP_PER_RANTHROUGH; roundRec.downtime+=RANTHROUGH_DOWNTIME;
+      el('runFb').innerHTML='<div class="banner bad">✗ You kept producing through a special-cause signal — defective lots shipped (+$120k, +'
+        +SCRAP_PER_RANTHROUGH+' kg scrap, +'+RANTHROUGH_DOWNTIME+' min reactive downtime). '+curDef.runEx+'</div>'
+        +'<p class="small muted">A line cannot keep running while out of control. Your team stops now and proceeds to failure-mode analysis.</p>';
+    } else {
+      // correct planned stop
+      roundRec.downtime+=STOP_DOWNTIME; roundRec.scrap+=SCRAP_PER_FAULT;
+      el('runFb').innerHTML='<div class="banner good">✔ Correct call — STOP. '+curDef.runEx
+        +' <span class="muted">(Planned stop: '+STOP_DOWNTIME+' min to diagnose; '+SCRAP_PER_FAULT+' kg of suspect product quarantined.)</span></div>';
+    }
+    updateHUD(); // reflect run-stage cost immediately
+    openDiagnosis();
+  }
+}
+
+/* compute uptime for this round from accrued downtime (capped at the block) */
+function commitRoundTime(){
+  roundRec.downtime=Math.min(roundRec.downtime, BLOCK_MIN);
+}
+/* roll a finished round's figures into the running totals */
+function applyRoundToTotals(rec){
+  state.cost+=rec.cost;
+  state.scrapKg+=rec.scrap;
+  state.downtimeMin+=rec.downtime;
+  state.uptimeMin+=(BLOCK_MIN-rec.downtime);
+  state.earnedPts+=(rec.callPts+rec.diagPts);
+  state.maxPts+=rec.maxPts;
+  roundRec=null;     // committed — stop counting it as in-progress
+  updateHUD();
+}
+
+function finishRoundButton(){
+  // for in-control rounds (or any round whose record is already committed): expose Continue
+  el('stageVerify').classList.remove('hidden');
+  el('verifyIntro').textContent='No corrective action required — the process is stable.';
+  el('chart2').classList.add('hidden'); el('legend2').innerHTML='';
+  el('verifyFb').innerHTML='';
+  el('nextBtn').classList.remove('hidden');
+  if(state.round+1>=TOTAL) el('nextBtn').textContent='See shift debrief ▶';
+  state.round++;
+  el('prog').style.width=(state.round/TOTAL*100)+'%';
+  el('stageVerify').scrollIntoView({behavior:'smooth'});
+}
+
+/* ---- Stage 2: choose the assignable cause (with retry until correct) ---- */
+function openDiagnosis(){
+  el('phaseBadge').textContent='Phase: Round '+(state.round+1)+' — diagnose';
+  el('stageDiag').classList.remove('hidden');
+  const box=el('diagOpts'); box.innerHTML='';
+  const order=[...curDef.causes.keys()].sort(()=>rng()-0.5);
+  order.forEach(idx=>{
+    const c=curDef.causes[idx];
+    const b=document.createElement('button'); b.className='quiz-opt'; b.textContent=c.t;
+    b.dataset.idx=idx;
+    b.onclick=()=>chooseCause(idx,box); box.appendChild(b);
+  });
+  el('stageDiag').scrollIntoView({behavior:'smooth'});
+}
+function chooseCause(idx,box){
+  const c=curDef.causes[idx];
+  const right=!!c.fix;
+  roundRec.attempts++;
+
+  // grey out the option just chosen (both right and wrong get locked)
+  const picked=[...box.children].find(b=>Number(b.dataset.idx)===idx);
+  if(picked){ picked.disabled=true; picked.classList.add(right?'correct':'wrong'); }
+
+  if(right){
+    // lock every remaining option
+    [...box.children].forEach(b=>{ b.disabled=true; });
+    state.fixCorrect++;
+    const wrongTries = roundRec.attempts-1;                 // misdiagnoses before this
+    roundRec.diagPts = Math.max(0, PTS_DIAG - wrongTries*PTS_DIAG_PENALTY);
+    roundRec.fixOK = (roundRec.attempts===1);
+    const lostTxt = wrongTries>0 ? ' You lost '+(PTS_DIAG-roundRec.diagPts)+' of '+PTS_DIAG+' diagnosis points for '+wrongTries+' wrong '+(wrongTries===1?'attempt':'attempts')+'.' : '';
+    el('diagFb').innerHTML='<div class="banner '+(wrongTries===0?'good':'warn')+'">✔ '+c.ex
+      +' <span class="muted">(Correct on attempt '+roundRec.attempts+'; earned '+roundRec.diagPts+'/'+PTS_DIAG+' diagnosis points.'+lostTxt+')</span></div>';
+    commitRoundTime();
+    state.results.push({...roundRec});
+    applyRoundToTotals(roundRec);
+    showVerification(true);
+  } else {
+    // wrong cause: this is a missed decision — penalize points AND operations, keep line DOWN
+    state.missedDiag++;
+    roundRec.cost+=80; roundRec.scrap+=SCRAP_PER_BADFIX; roundRec.downtime+=BADFIX_DOWNTIME;
+    showVerification(false);
+    const projected = Math.max(0, PTS_DIAG - roundRec.attempts*PTS_DIAG_PENALTY); // if next try is correct
+    el('diagFb').innerHTML='<div class="banner bad">✗ '+c.ex
+      +'<br><b>Missed diagnosis #'+roundRec.attempts+'.</b> The line stays down — a process cannot resume while still out of control. '
+      +'Added +$80k, +'+SCRAP_PER_BADFIX+' kg scrap, +'+BADFIX_DOWNTIME+' min downtime, and −'+PTS_DIAG_PENALTY+' diagnosis points. '
+      +'<b>Pick another cause above and try again.</b> <span class="muted">(A correct pick now would earn '+projected+'/'+PTS_DIAG+'.)</span></div>';
+    updateHUD();
+    el('stageDiag').scrollIntoView({behavior:'smooth'});
+  }
+}
+
+/* ---- Stage 3: show the re-run result. Advances only on a successful fix. ---- */
+function showVerification(fixWorked){
+  el('phaseBadge').textContent='Phase: Round '+(state.round+1)+(fixWorked?' — verify':' — still down');
+  el('stageVerify').classList.remove('hidden');
+  el('chart2').classList.remove('hidden');
+  const after=buildData(curDef, !fixWorked); // fault removed only if the right cause was fixed
+  el('verifyIntro').textContent = fixWorked ? curDef.fixIntro : curDef.failIntro;
+  drawChart('chart2','legend2',after);
+  if(fixWorked){
+    el('verifyFb').innerHTML='<div class="banner good">✔ Signal cleared. The re-run sits inside the control limits with no runs or trends — the assignable cause was removed and control is restored. Production may resume.</div>';
+    el('nextBtn').classList.remove('hidden');
+    state.round++;
+    el('prog').style.width=(state.round/TOTAL*100)+'%';
+    if(state.round>=TOTAL) el('nextBtn').textContent='See shift debrief ▶';
+    el('stageVerify').scrollIntoView({behavior:'smooth'});
+  } else {
+    // still out of control — do NOT advance, keep Continue hidden; student retries diagnosis
+    el('verifyFb').innerHTML='<div class="banner bad">✗ Still out of control. The special cause is active and the chart has not recovered, so the line remains stopped until the correct corrective action is applied.</div>';
+    el('nextBtn').classList.add('hidden');
+  }
+}
+function isStable(d){
+  if(d.kind==='xbarR'){
+    const xo=d.xbar.some(v=>v>d.lim.xUCL+1e-9||v<d.lim.xLCL-1e-9);
+    const ro=d.R.some(v=>v>d.lim.rUCL+1e-9||v<d.lim.rLCL-1e-9);
+    return !xo && !ro;
+  }
+  return !d.vals.some(v=>v>d.lim.UCL+1e-9||v<d.lim.LCL-1e-9);
+}
+
+function updateHUD(){
+  el('dec').textContent=state.runCorrect+state.fixCorrect;
+  el('missed').textContent=state.missedCalls+state.missedDiag;
+  el('cost').textContent=state.cost + (roundRec? roundRec.cost : 0);
+  el('scrap').textContent=state.scrapKg + (roundRec? roundRec.scrap : 0);
+  // live score = earned points / points available so far (committed rounds only)
+  const scorePct = state.maxPts>0 ? Math.round(state.earnedPts/state.maxPts*100) : 100;
+  el('scorePct').textContent=scorePct;
+  // uptime/downtime % over elapsed scheduled time (committed rounds + in-progress round)
+  const committedMin = state.uptimeMin + state.downtimeMin;
+  const inProgDown = roundRec? Math.min(roundRec.downtime,BLOCK_MIN) : 0;
+  const elapsedMin = committedMin + (roundRec? BLOCK_MIN : 0);
+  const downSoFar = state.downtimeMin + inProgDown;
+  const upPct = elapsedMin>0 ? Math.round((elapsedMin-downSoFar)/elapsedMin*100) : 100;
+  el('uptime').textContent=upPct;
+  el('downtime').textContent=100-upPct;
+}
+
+/* ============ KPI / table ============ */
+function drawKPI(c){
+  let html='';
+  if(c.kind==='xbarR'){ const L=c.lim;
+    html=`<div class="box"><div class="k">x̿</div><div class="v">${round(L.xCL,c.dec)}</div></div>
+    <div class="box"><div class="k">X̄ UCL / LCL</div><div class="v">${round(L.xUCL,c.dec)} / ${round(L.xLCL,c.dec)}</div></div>
+    <div class="box"><div class="k">R̄</div><div class="v">${round(L.rCL,c.dec)}</div></div>
+    <div class="box"><div class="k">R UCL / LCL</div><div class="v">${round(L.rUCL,c.dec)} / ${round(L.rLCL,c.dec)}</div></div>`;
+  } else if(c.kind==='p'){ const L=c.lim;
+    html=`<div class="box"><div class="k">p̄</div><div class="v">${round(L.CL,4)}</div></div>
+    <div class="box"><div class="k">UCL</div><div class="v">${round(L.UCL,4)}</div></div>
+    <div class="box"><div class="k">LCL</div><div class="v">${round(L.LCL,4)}</div></div>
+    <div class="box"><div class="k">n / subgroup</div><div class="v">${c.n}</div></div>`;
+  } else if(c.kind==='c'){ const L=c.lim;
+    html=`<div class="box"><div class="k">c̄</div><div class="v">${round(L.CL,2)}</div></div>
+    <div class="box"><div class="k">UCL</div><div class="v">${round(L.UCL,2)}</div></div>
+    <div class="box"><div class="k">LCL</div><div class="v">${round(L.LCL,2)}</div></div>`;
+  }
+  el('kpi').innerHTML=html;
+}
+function drawTable(c){
+  let html='<table><tr>';
+  if(c.kind==='xbarR'){
+    html+='<th class="l">Subgroup</th><th>x̄</th><th>R</th></tr>';
+    for(let i=0;i<c.xbar.length;i++){
+      const xo=c.xbar[i]>c.lim.xUCL||c.xbar[i]<c.lim.xLCL;
+      const ro=c.R[i]>c.lim.rUCL||c.R[i]<c.lim.rLCL;
+      html+=`<tr><td class="l">${i+1}</td><td class="num ${xo?'out':''}">${round(c.xbar[i],c.dec)}</td><td class="num ${ro?'out':''}">${round(c.R[i],c.dec)}</td></tr>`;
+    }
+  } else if(c.kind==='p'){
+    html+='<th class="l">Subgroup</th><th>defectives</th><th>p̂</th></tr>';
+    for(let i=0;i<c.vals.length;i++){ const o=c.vals[i]>c.lim.UCL||c.vals[i]<c.lim.LCL;
+      html+=`<tr><td class="l">${i+1}</td><td class="num">${c.defs[i]}</td><td class="num ${o?'out':''}">${round(c.vals[i],4)}</td></tr>`;}
+  } else if(c.kind==='c'){
+    html+='<th class="l">Subgroup</th><th>defects (c)</th></tr>';
+    for(let i=0;i<c.vals.length;i++){ const o=c.vals[i]>c.lim.UCL||c.vals[i]<c.lim.LCL;
+      html+=`<tr><td class="l">${i+1}</td><td class="num ${o?'out':''}">${c.vals[i]}</td></tr>`;}
+  }
+  html+='</table>'; el('dataTable').innerHTML=html;
+}
+
+/* ============ chart drawing ============ */
+function drawChart(canvasId,legendId,c){
+  const cv=el(canvasId), ctx=cv.getContext('2d'); const W=cv.width,H=cv.height;
+  ctx.clearRect(0,0,W,H); el(legendId).innerHTML='';
+  if(c.kind==='xbarR'){
+    panel(ctx,0,0,W,H/2,c.xbar,c.lim.xCL,c.lim.xUCL,c.lim.xLCL,'X̄ chart',c.dec);
+    panel(ctx,0,H/2,W,H/2,c.R,c.lim.rCL,c.lim.rUCL,c.lim.rLCL,'R chart',c.dec);
+  } else if(c.kind==='p'){
+    panel(ctx,0,0,W,H,c.vals,c.lim.CL,c.lim.UCL,c.lim.LCL,'p-chart (fraction defective)',c.dec);
+  } else if(c.kind==='c'){
+    panel(ctx,0,0,W,H,c.vals,c.lim.CL,c.lim.UCL,c.lim.LCL,'c-chart (defects per unit)',c.dec);
+  }
+  el(legendId).innerHTML='<span><i style="background:var(--accent)"></i>plotted statistic</span>'
+    +'<span><i style="background:#9aa7bd"></i>centerline</span>'
+    +'<span><i style="background:var(--bad)"></i>UCL / LCL</span>'
+    +'<span><i style="background:var(--bad);width:8px;height:8px;border-radius:50%"></i>out-of-control point</span>';
+}
+function panel(ctx,x0,y0,w,h,data,CL,UCL,LCL,label,dec){
+  const padL=64,padR=18,padT=26,padB=24;
+  const x=x0+padL, y=y0+padT, pw=w-padL-padR, ph=h-padT-padB;
+  let lo=Math.min(LCL,...data), hi=Math.max(UCL,...data);
+  const span=(hi-lo)||1; lo-=span*0.12; hi+=span*0.12;
+  const Y=v=>y+ph-(v-lo)/(hi-lo)*ph;
+  const X=i=>x+(data.length<=1?pw/2:i/(data.length-1)*pw);
+  ctx.fillStyle='#16233a'; ctx.fillRect(x0,y0,w,h);
+  ctx.fillStyle='#9fb0c8'; ctx.font='13px system-ui'; ctx.textAlign='left'; ctx.fillText(label,x0+10,y0+16);
+  ctx.textAlign='right'; ctx.font='11px system-ui';
+  for(let g=0;g<=4;g++){ const val=lo+(hi-lo)*g/4, yy=Y(val);
+    ctx.strokeStyle='#1d2c45'; ctx.beginPath(); ctx.moveTo(x,yy); ctx.lineTo(x+pw,yy); ctx.stroke();
+    ctx.fillStyle='#6f819b'; ctx.fillText(round(val,dec),x-8,yy+3); }
+  function hl(v,color,dash){ ctx.save(); ctx.setLineDash(dash||[]); ctx.strokeStyle=color; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.moveTo(x,Y(v)); ctx.lineTo(x+pw,Y(v)); ctx.stroke(); ctx.restore(); }
+  hl(UCL,'#ff6b6b',[6,4]); hl(LCL,'#ff6b6b',[6,4]); hl(CL,'#9aa7bd',[]);
+  ctx.fillStyle='#ff8a8a'; ctx.textAlign='left'; ctx.font='10px system-ui';
+  ctx.fillText('UCL '+round(UCL,dec),x+4,Y(UCL)-3);
+  ctx.fillText('LCL '+round(LCL,dec),x+4,Y(LCL)+11);
+  ctx.fillStyle='#aab6c9'; ctx.fillText('CL '+round(CL,dec),x+pw-72,Y(CL)-3);
+  ctx.strokeStyle='#46b3ff'; ctx.lineWidth=2; ctx.beginPath();
+  data.forEach((v,i)=>{const px=X(i),py=Y(v); i?ctx.lineTo(px,py):ctx.moveTo(px,py);}); ctx.stroke();
+  data.forEach((v,i)=>{ const px=X(i),py=Y(v); const out=v>UCL+1e-9||v<LCL-1e-9;
+    ctx.beginPath(); ctx.arc(px,py,out?5:3.5,0,7); ctx.fillStyle=out?'#ff6b6b':'#46b3ff'; ctx.fill();
+    if(out){ctx.strokeStyle='#ffd4d4';ctx.lineWidth=1.5;ctx.stroke();} });
+}
+
+/* ============ debrief ============ */
+function endGame(){
+  show('screen-end');
+  el('phaseBadge').textContent='Phase: Debrief'; el('roundPill').textContent='Complete';
+  el('prog').style.width='100%';
+  const totalDec = state.runCorrect + state.fixCorrect;
+  const totalMissed = state.missedCalls + state.missedDiag;
+  const pct = state.maxPts>0 ? state.earnedPts/state.maxPts : 0;
+  const pctRound = Math.round(pct*100);
+  lastPct = pctRound;
+  const totalSched = TOTAL*BLOCK_MIN;
+  const upPct = Math.round((state.uptimeMin)/totalSched*100);
+  const downPct = 100-upPct;
+  el('endKpi').innerHTML=`
+    <div class="box"><div class="k">Score</div><div class="v">${pctRound}%</div></div>
+    <div class="box"><div class="k">Points earned</div><div class="v">${state.earnedPts}/${state.maxPts}</div></div>
+    <div class="box"><div class="k">Correct decisions</div><div class="v">${totalDec}</div></div>
+    <div class="box"><div class="k">Missed decisions</div><div class="v">${totalMissed}</div></div>
+    <div class="box"><div class="k">Quality cost</div><div class="v">$${state.cost}k</div></div>
+    <div class="box"><div class="k">Scrap material</div><div class="v">${state.scrapKg} kg</div></div>
+    <div class="box"><div class="k">Uptime</div><div class="v">${upPct}%</div></div>
+    <div class="box"><div class="k">Downtime</div><div class="v">${downPct}%</div></div>`;
+  const LEVELS=[
+    {min:0.90, cls:'good', name:'Lead Quality Engineer',
+      note:'You separated signal from noise, stopped only when warranted, and fixed the true root cause fast.'},
+    {min:0.80, cls:'good', name:'Quality Engineer II',
+      note:'Strong performance — reliable stop/continue calls and efficient root-cause diagnosis.'},
+    {min:0.70, cls:'warn', name:'Quality Engineer I',
+      note:'Solid instincts; tighten the link between the data pattern and the assignable cause you act on.'},
+    {min:0.60, cls:'warn', name:'Quality Engineer Intern',
+      note:'Developing — revisit the stop/continue decision and matching the failure mode to the chart signal.'},
+    {min:0.00, cls:'bad', name:'Scrap Collector — needs retraining',
+      note:'Review common- vs. special-cause variation, when to stop the line, and how each chart points to its root cause.'}
+  ];
+  const level = LEVELS.find(l=>pct>=l.min);
+  lastLevel = level.name;
+  el('endBanner').innerHTML='<div class="banner '+level.cls+'"><b>'+level.name+'</b> — '+level.note
+    +' <span class="muted">Scoring: each round is worth '+PTS_CALL+' pts for the stop/continue call'
+    +(' plus '+PTS_DIAG+' pts for the diagnosis on faulty rounds, minus '+PTS_DIAG_PENALTY+' pts per wrong diagnosis attempt.')+'</span></div>';
+  // certificate gate — awarded to Quality Engineer I and above (70%+)
+  if(pctRound>=70){ el('certBlock').classList.remove('hidden'); el('certLocked').classList.add('hidden'); }
+  else { el('certBlock').classList.add('hidden'); el('certLocked').classList.remove('hidden'); }
+  let t='<table><tr><th class="l">Round</th><th>Stop/continue</th><th>Root-cause fix</th><th>Points</th><th>Scrap (kg)</th><th>Downtime (min)</th></tr>';
+  state.results.forEach(r=>{
+    const fixCell = r.fixOK===null ? '<span class="muted">n/a — stable</span>'
+      : (r.attempts===1 ? '<span class="ok">✔ first try</span>'
+        : '<span style="color:var(--warn)">✔ after '+r.attempts+' tries</span>');
+    const pts=(r.callPts||0)+(r.diagPts||0);
+    t+=`<tr><td class="l">${r.title}</td>
+        <td class="${r.runOK?'ok':'out'}">${r.runOK?'✔ correct':'✗ missed'}</td>
+        <td>${fixCell}</td>
+        <td class="num">${pts}/${r.maxPts}</td>
+        <td class="num">${r.scrap||0}</td>
+        <td class="num">${r.downtime||0}</td></tr>`;
+  });
+  t+=`<tr style="font-weight:700"><td class="l">Totals</td><td></td><td></td><td class="num">${state.earnedPts}/${state.maxPts}</td><td class="num">${state.scrapKg}</td><td class="num">${state.downtimeMin}</td></tr>`;
+  t+='</table>'; el('endTable').innerHTML=t;
+  const takes=[
+    'Read the data before touching the process: continue a stable process, stop only on a genuine special-cause signal. Both over-control and under-control carry real cost.',
+    'X̄ detects mean shifts; R detects changes in spread. Confirm R is in control before trusting X̄ limits — they are built from A₂R̄.',
+    'Use p-charts when a defective proportion is meaningful; use c-charts when you count defects per unit (Poisson).',
+    'Match the corrective action to the failure mode the chart revealed. A coolant change shows on X̄; a loose clamp shows on R; a paste/stencil fault shows on the p-chart; a clogging nozzle shows on the c-chart.',
+    'Verify every fix with fresh data. If the signal does not clear, the assignable cause was not removed — stop and re-diagnose.',
+    'Never silence a signal by widening limits or folding out-of-control points into the centerline.'];
+  el('endTakeaways').innerHTML=takes.map(x=>'<li>'+x+'</li>').join('');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+/* ============ certificate (PNG export) ============ */
+let lastPct = 0;
+let lastLevel = '';
+function wrapLines(ctx, text, maxWidth){
+  const words=text.split(' '); const lines=[]; let line='';
+  for(const w of words){
+    const test=line?line+' '+w:w;
+    if(ctx.measureText(test).width>maxWidth && line){ lines.push(line); line=w; }
+    else line=test;
+  }
+  if(line) lines.push(line);
+  return lines;
+}
+function downloadCertificate(){
+  const nameRaw=(el('certName').value||'').trim();
+  if(!nameRaw){ el('certName').focus(); el('certName').style.borderColor='#ff6b6b'; return; }
+  const name=nameRaw.replace(/[<>]/g,'').slice(0,60);
+  const d=new Date();
+  const dateStr=d.toLocaleDateString(undefined,{year:'numeric',month:'long',day:'numeric'});
+  const cid='AeroSPC-'+d.getFullYear()+(''+(d.getMonth()+1)).padStart(2,'0')+(''+d.getDate()).padStart(2,'0')+'-'+Math.floor(rng()*1e6).toString(36).toUpperCase();
+
+  const S=2;                 // supersample for crisp PNG
+  const W=1000, H=680;
+  const cv=document.createElement('canvas'); cv.width=W*S; cv.height=H*S;
+  const ctx=cv.getContext('2d'); ctx.scale(S,S);
+  ctx.textBaseline='alphabetic';
+
+  // background + paper
+  ctx.fillStyle='#0b1220'; ctx.fillRect(0,0,W,H);
+  const m=28;
+  ctx.fillStyle='#fbf9f3'; roundRect(ctx,m,m,W-2*m,H-2*m,10); ctx.fill();
+  // blue outer frame
+  ctx.lineWidth=4; ctx.strokeStyle='#1f6fc0'; roundRect(ctx,m,m,W-2*m,H-2*m,10); ctx.stroke();
+  // gold inner frame
+  ctx.lineWidth=1.5; ctx.strokeStyle='#c9a23a'; roundRect(ctx,m+14,m+14,W-2*m-28,H-2*m-28,6); ctx.stroke();
+
+  const cx=W/2;
+  ctx.textAlign='center';
+
+  // kicker
+  ctx.fillStyle='#1f6fc0'; ctx.font='600 13px Arial';
+  ctx.fillText(spaced('AEROSPC · STATISTICAL QUALITY CONTROL SIMULATOR',1.5), cx, 96);
+  // title
+  ctx.fillStyle='#15233f'; ctx.font='bold 42px Georgia';
+  ctx.fillText('Certificate of Completion', cx, 150);
+  // subtitle
+  ctx.fillStyle='#5a6b86'; ctx.font='15px Arial';
+  ctx.fillText('Aerospace Production Line — Statistical Process Control', cx, 178);
+  // awarded
+  ctx.fillStyle='#5a6b86'; ctx.font='14px Arial';
+  ctx.fillText('This is to certify that', cx, 232);
+  // name
+  ctx.fillStyle='#0f3d77'; ctx.font='bold 36px Georgia';
+  ctx.fillText(name, cx, 278);
+  const nameW=Math.min(ctx.measureText(name).width+60, W-2*m-80);
+  ctx.strokeStyle='#c9a23a'; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.moveTo(cx-nameW/2,292); ctx.lineTo(cx+nameW/2,292); ctx.stroke();
+
+  // body (wrapped)
+  ctx.fillStyle='#26344f'; ctx.font='15.5px Georgia';
+  const body='has successfully completed a 10-round statistical quality control shift — correctly interpreting X\u0304-R, p-, and c-control charts, distinguishing common-cause from special-cause variation, making sound stop-versus-continue production decisions, and diagnosing and verifying corrective actions through failure-mode analysis.';
+  const lines=wrapLines(ctx, body, 720);
+  let y=330; lines.forEach(l=>{ ctx.fillText(l,cx,y); y+=26; });
+
+  // score
+  y+=20;
+  ctx.textAlign='center';
+  ctx.font='18px Georgia';
+  const label='Final assessment score:  ';
+  const pctTxt=lastPct+'%';
+  ctx.font='18px Georgia'; const lw=ctx.measureText(label).width;
+  ctx.font='bold 24px Georgia'; const pw=ctx.measureText(pctTxt).width;
+  const startX=cx-(lw+pw)/2;
+  ctx.textAlign='left';
+  ctx.fillStyle='#15233f'; ctx.font='18px Georgia'; ctx.fillText(label, startX, y);
+  ctx.fillStyle='#1f6fc0'; ctx.font='bold 24px Georgia'; ctx.fillText(pctTxt, startX+lw, y);
+  ctx.textAlign='center';
+  // competence level
+  y+=28;
+  ctx.fillStyle='#0f3d77'; ctx.font='italic 17px Georgia';
+  ctx.fillText('Competence level: '+lastLevel, cx, y);
+
+  // seal
+  const sy=H-124, sr=46;
+  const grd=ctx.createRadialGradient(cx,sy,4,cx,sy,sr);
+  grd.addColorStop(0,'#ffffff'); grd.addColorStop(1,'#f2ecd8');
+  ctx.fillStyle=grd; ctx.beginPath(); ctx.arc(cx,sy,sr,0,Math.PI*2); ctx.fill();
+  ctx.strokeStyle='#c9a23a'; ctx.lineWidth=3; ctx.beginPath(); ctx.arc(cx,sy,sr,0,Math.PI*2); ctx.stroke();
+  ctx.fillStyle='#1f6fc0'; ctx.font='600 10px Arial';
+  ctx.fillText('QUALITY', cx, sy-12);
+  ctx.fillText('ENGINEERING', cx, sy);
+  ctx.fillStyle='#c9a23a'; ctx.font='14px Arial'; ctx.fillText('★', cx, sy+15);
+  ctx.fillStyle='#1f6fc0'; ctx.font='600 10px Arial'; ctx.fillText('CERTIFIED', cx, sy+28);
+
+  // signature lines
+  const by=H-92, half=210;
+  ctx.strokeStyle='#1a2740'; ctx.lineWidth=1.5;
+  // left = date
+  ctx.beginPath(); ctx.moveTo(cx-half-110,by); ctx.lineTo(cx-110,by); ctx.stroke();
+  ctx.fillStyle='#15233f'; ctx.font='italic 15px Georgia'; ctx.fillText(dateStr, cx-half/2-110, by-8);
+  ctx.fillStyle='#5a6b86'; ctx.font='12px Arial'; ctx.fillText('DATE', cx-half/2-110, by+18);
+  // right = issuer
+  ctx.beginPath(); ctx.moveTo(cx+110,by); ctx.lineTo(cx+half+110,by); ctx.stroke();
+  ctx.fillStyle='#15233f'; ctx.font='italic 15px Georgia'; ctx.fillText('AeroSPC Simulator', cx+half/2+110, by-8);
+  ctx.fillStyle='#5a6b86'; ctx.font='12px Arial'; ctx.fillText('ISSUED BY', cx+half/2+110, by+18);
+
+  // certificate id
+  ctx.fillStyle='#8a93a5'; ctx.font='11px Arial';
+  ctx.fillText(spaced('Certificate ID: '+cid,0.5), cx, H-44);
+
+  // export PNG
+  const safe=name.replace(/\s+/g,'_').replace(/[^A-Za-z0-9_]/g,'');
+  cv.toBlob(function(blob){
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download='AeroSPC_Certificate_'+(safe||'student')+'.png';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+  },'image/png');
+}
+function roundRect(ctx,x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath();
+}
+function spaced(str){ return str; }
+
+/* boot */
+show('screen-intro');
+</script>
+</body>
+</html>
